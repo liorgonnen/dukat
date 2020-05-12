@@ -3,10 +3,14 @@ plugins {
     id("com.github.node-gradle.node")
 }
 
-def PROPERTY_PACKAGE_VERSION = "dukat.npm.version"
 def PROPERTY_REGISTRY = "dukat.npm.registry"
+def PROPERTY_PACKAGE = "dukat.npm.packageVersion"
+
 def DISTRIB_PATH = "${project.buildDir}/distrib"
-def typescriptVersion = hasProperty("tsVersion") ? tsVersion : gradle.defaultTsVersion
+def TYPESCRIPT_VERSION = hasProperty("tsVersion") ? tsVersion : gradle.defaultTsVersion
+def PACKAGE_VERSION = hasProperty(PROPERTY_PACKAGE) ? getProperty(PROPERTY_PACKAGE)
+                                                        .replace("__DEFAULT__", gradle.defaultNpmPackageVersion)
+                                                        .replace("__TIMESTAMP__", new Date().format("yyyyMMdd")) : gradle.defaultNpmPackageVersion
 
 node {
     workDir = gradle.nodeWorkingDir
@@ -37,8 +41,9 @@ task prepareNpmPackage {
             from "package.template.json"
             into DISTRIB_PATH
             filter { String line ->
-                line.replaceAll("__TS_VERSION__", typescriptVersion)
+                line.replaceAll("__TS_VERSION__", TYPESCRIPT_VERSION)
                     .replaceAll("__PROTOBUF_VERSION__", gradle.protobufImplementationVersion)
+                    .replaceAll("__PACKAGE_VERSION__", PACKAGE_VERSION)
             }
             rename { String fileName -> fileName.replace(".template", "") }
         }
@@ -91,12 +96,6 @@ task buildDistrib {
     }
 }
 
-task npmVersion(type: NpmTask) {
-    onlyIf {
-        project.hasProperty(PROPERTY_PACKAGE_VERSION)
-    }
-    args = ["version", project.findProperty(PROPERTY_PACKAGE_VERSION) ?: "NEVER" ]
-}
 
 task nodeEnv(type: NodeTask) {
     doFirst {
@@ -108,7 +107,7 @@ task nodeEnv(type: NodeTask) {
 
 
 task npmPack(type: NpmTask) {
-    dependsOn = [":command-line:build", buildDistrib, npmVersion]
+    dependsOn = [":command-line:build", buildDistrib]
     args = ["pack"]
 }
 
@@ -124,15 +123,22 @@ task npmrc() {
     }
 }
 
+
+
 task npmPublish(type: NpmTask) {
     dependsOn = [npmrc, npmPack]
 
-    def packageVersion =
-            project.findProperty(PROPERTY_PACKAGE_VERSION) ?:
-            new groovy.json.JsonSlurper().parseText(file("package.template.json").text).version
-
-    def distribPath = "dukat-${packageVersion}.tgz"
+    def distribPath = "dukat-${PACKAGE_VERSION}.tgz"
 
     def registry = project.findProperty(PROPERTY_REGISTRY) ?: "registry.npmjs.org"
-    args = ["publish",  distribPath,  "--registry", "http://${registry}"]
+    def npmArgs = ["publish",  distribPath,  "--registry", "http://${registry}"]
+
+    if (project.hasProperty("dukat.npm.tag")) {
+        npmArgs += ["--tag", project.getProperty("dukat.npm.tag") as String]
+    }
+
+    println("publishing npm artifact:")
+    println("npm " + npmArgs.join(" "))
+
+    args = npmArgs
 }
