@@ -1,23 +1,29 @@
 package org.jetbrains.dukat.model.commonLowerings
 
 import org.jetbrains.dukat.astCommon.IdentifierEntity
+import org.jetbrains.dukat.astCommon.NameEntity
 import org.jetbrains.dukat.astCommon.toNameEntity
-import org.jetbrains.dukat.astModel.AnnotationModel
-import org.jetbrains.dukat.astModel.ClassLikeModel
-import org.jetbrains.dukat.astModel.ImportModel
-import org.jetbrains.dukat.astModel.InterfaceModel
-import org.jetbrains.dukat.astModel.ModuleModel
-import org.jetbrains.dukat.astModel.SourceSetModel
+import org.jetbrains.dukat.astModel.*
 import org.jetbrains.dukat.astModel.visitors.visitTopLevelModel
 
-private fun ModuleModel.addStandardImportsAndAnnotations() {
+private fun ModuleModel.addStandardImportsAndAnnotations(qualifierName: NameEntity?) {
+
+    qualifierName?.let { qualifier ->
+        val hasTypeAliases = declarations.any { it is TypeAliasModel }
+
+        // Can't put non-external declarations in file marked with JsQualifier annotation
+        if (!hasTypeAliases) annotations.add(AnnotationModel("file:JsQualifier", listOf(qualifier)))
+    }
 
     annotations.add(AnnotationModel("file:Suppress", listOf(
+            "ABSTRACT_MEMBER_NOT_IMPLEMENTED",
+            "VAR_TYPE_MISMATCH_ON_OVERRIDE",
             "INTERFACE_WITH_SUPERCLASS",
             "OVERRIDING_FINAL_MEMBER",
             "RETURN_TYPE_MISMATCH_ON_OVERRIDE",
             "CONFLICTING_OVERLOADS",
-            "EXTERNAL_DELEGATION"
+            "EXTERNAL_DELEGATION",
+            "PackageDirectoryMismatch"
     ).map { it.toNameEntity() }))
 
     imports.addAll(0,
@@ -48,7 +54,7 @@ private fun InterfaceModel.hasNestedEntity(): Boolean {
     return members.any { (it is ClassLikeModel) }
 }
 
-class AddStandardImportsAndAnnotations : ModelLowering {
+class AddStandardImportsAndAnnotations(private val qualifierName: NameEntity?) : ModelLowering {
     override fun lower(module: ModuleModel): ModuleModel {
         module.visitTopLevelModel { topLevelModel ->
             when (topLevelModel) {
@@ -58,7 +64,7 @@ class AddStandardImportsAndAnnotations : ModelLowering {
                     }
                 }
                 is ModuleModel -> {
-                    topLevelModel.addStandardImportsAndAnnotations()
+                    topLevelModel.addStandardImportsAndAnnotations(qualifierName)
                 }
             }
         }

@@ -46,7 +46,8 @@ import org.jetrbains.dukat.nodeLowering.lowerings.typeAlias.ResolveTypeAliases
 
 open class TypescriptWithBodyLowerer(
         private val moduleNameResolver: ModuleNameResolver,
-        private val packageName: NameEntity?
+        private val packageName: NameEntity?,
+        private val qualifierName: NameEntity? = null
 ) : ECMAScriptLowerer {
     override fun lower(
             sourceSet: SourceSetDeclaration
@@ -99,7 +100,7 @@ open class TypescriptWithBodyLowerer(
                         AddImports(),
                         AnyfyUnresolvedTypes(),
                         AddNoinlineModifier(),
-                        AddStandardImportsAndAnnotations()
+                        AddStandardImportsAndAnnotations(qualifierName)
                 )
 
         return models

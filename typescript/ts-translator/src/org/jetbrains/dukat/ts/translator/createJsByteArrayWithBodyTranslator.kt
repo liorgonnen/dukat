@@ -5,5 +5,6 @@ import org.jetbrains.dukat.moduleNameResolver.ModuleNameResolver
 
 fun createJsByteArrayWithBodyTranslator(
     moduleNameResolver: ModuleNameResolver,
-    packageName: NameEntity?
-) = JsRuntimeByteArrayTranslator(TypescriptWithBodyLowerer(moduleNameResolver, packageName))
+    packageName: NameEntity?,
+    qualifierName: NameEntity?
+) = JsRuntimeByteArrayTranslator(TypescriptWithBodyLowerer(moduleNameResolver, packageName, qualifierName))

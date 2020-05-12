@@ -77,7 +77,7 @@ private fun SourceFileModel.resolveAsTargetName(packageName: NameEntity, clashMa
     var addModuleName = true
 
 
-    var name =
+    var name = if (sourceFileName.endsWith(D_TS_DECLARATION_EXTENSION)) ktFileNamePrefix.toNameEntity() else
             packageName
                     .replacePrefix(ROOT_PACKAGENAME, ktFileNamePrefix.toNameEntity())
                     .replacePrefix(TSLIBROOT, ktFileNamePrefix.toNameEntity()) {

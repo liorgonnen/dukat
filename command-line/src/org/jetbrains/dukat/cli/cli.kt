@@ -65,9 +65,10 @@ fun translateWithBodyBinaryBundle(
     outDir: String?,
     moduleNameResolver: ModuleNameResolver,
     packageName: NameEntity?,
+    qualifierName: NameEntity?,
     pathToReport: String?
 ) {
-    val translator = createJsByteArrayWithBodyTranslator(moduleNameResolver, packageName)
+    val translator = createJsByteArrayWithBodyTranslator(moduleNameResolver, packageName, qualifierName)
     val translatedUnits = translateModule(input, translator)
     compileUnits(translatedUnits, outDir, pathToReport)
 }
@@ -168,6 +169,7 @@ private data class CliOptions(
         val sources: List<String>,
         val outDir: String?,
         val basePackageName: NameEntity?,
+        val jsQualifier: NameEntity?,
         val jsModuleName: String?,
         val reportPath: String?,
         val tsDefaultLib: String,
@@ -185,6 +187,7 @@ private fun process(args: List<String>): CliOptions? {
     val sources = mutableListOf<String>()
     var outDir: String? = null
     var basePackageName: NameEntity? = null
+    var jsQualifierName: NameEntity? = null
     var jsModuleName: String? = null
     var reportPath: String? = null
     var generateDescriptors = false
@@ -229,6 +232,17 @@ private fun process(args: List<String>): CliOptions? {
                 jsModuleName = packageNameString
             }
 
+            "-q" -> {
+                val qualifierNameString = argsIterator.readArg()
+
+                if (qualifierNameString == null) {
+                    printError("'-q' should be followed with a string value")
+                    return null
+                }
+
+                jsQualifierName = qualifierNameString.toNameEntity()
+            }
+
             "-r" -> {
                 reportPath = argsIterator.readArg()
 
@@ -267,7 +281,7 @@ following file extensions are supported:
 
     val tsDefaultLib = File(PACKAGE_DIR, "d.ts.libs/lib.d.ts").absolutePath
 
-    return CliOptions(sources, outDir, basePackageName, jsModuleName, reportPath, tsDefaultLib, generateDescriptors)
+    return CliOptions(sources, outDir, basePackageName, jsQualifierName, jsModuleName, reportPath, tsDefaultLib, generateDescriptors)
 }
 
 fun main(vararg args: String) {
@@ -303,7 +317,7 @@ fun main(vararg args: String) {
                 translateBinaryBundle(
                         System.`in`.readBytes(),
                         options.outDir,
-                        JsRuntimeByteArrayTranslator(TypescriptLowerer(moduleResolver, options.basePackageName)),
+                        JsRuntimeByteArrayTranslator(TypescriptLowerer(moduleResolver, options.basePackageName, options.jsQualifier)),
                         options.reportPath,
                         options.generateDescriptors
                 )
@@ -334,6 +348,7 @@ fun main(vararg args: String) {
                     options.outDir,
                     moduleResolver,
                     options.basePackageName,
+                    options.jsQualifier,
                     options.reportPath
                 )
             }
