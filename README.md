@@ -1,20 +1,28 @@
-[![official JetBrains project](https://jb.gg/badges/official.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
-[![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 # Description
-Converter of TypeScript definition files to Kotlin declarations
+A slightly modified version of [Dukat](https://github.com/kotlin/dukat) by JetBrains that, for the time being, works better for generating [three.js](https://github.com/mrdoob/three.js/) external declarations.
 
-This requires JRE 1.6+ to run. It generates Kotlin files that are compatible with Kotlin 1.1+ (generated declarations
-are tested against latest stable compiler version)
+# Disclaimer
+This is meant for my personal use, but sharing for reference in case you want to jump in and modify Dukat to suit your usecase like I did.
+
+If you simply want to start building Kotlin/JS with three.js, you can check my [kotlin-three-js-starter](https://github.com/liorgonnen/kotlin-three-js-starter) repo
 
 # How to install
+If you want to run this locally, and also easily test your changes:
+```shell script
+./gradlew build
 
-The simplest way to use is install the latest version form [npm](https://www.npmjs.com/package/dukat):
-```shell
-npm install -g dukat
+cd node-package/build/distrib
+
+# Instead of install every time we build, we simply create a symlink to our local package
+npm link node-package/build/distrib
+
+# Create a symbolic link between the executed .jar in the local package, and the .jar
+# created when running gradle's command-line/build task
+ln -s command-line/build/libs/dukat-cli.jar /node-package/build/distrib/build/runtime/dukat-cli.jar
 ```
 
-# Usage
 
+# Usage
 ```shell
 dukat [<options>] <d.ts files>
 ```
@@ -22,50 +30,41 @@ dukat [<options>] <d.ts files>
 where possible options include:
 ```shell
     -p  <qualifiedPackageName>      package name for the generated file (by default filename.d.ts renamed to filename.d.kt)
+    -q  String                      Add a JS qualifier at the top of the generated file                       
     -m  String                      use this value as @file:JsModule annotation value whenever such annotation occurs
     -d  <path>                      destination directory for files with converted declarations (by default declarations are generated in current directory)
     -v, -version                    print version
 ```
+(Note that the `-q` option doesn't exist in the original Dukat)
 
-# How to setup and build
+You'll need my [three.js.kt](https://github.com/liorgonnen/three.js.kt) repo. It's a fork of three.js with slight modifications to the `d.ts` files.
+Ideally all the fixes would have been done here. But that's the current state of things.
 
-1. clone this project
-  ```shell
-  # on Windows-based platforms set following: `git config core.autocrlf true`   
-  git clone <this project url>
-  ```
-  
-2. build
- 
- ```shell
- ./gradlew build
- ```
- 
-3. (optional) Run unit tests
 
-```shell
-./gradlew test -Pdukat.test.failure.always
-```  
+```shell script
+# Clone the three.js.kt repo
+git clone https://github.com/liorgonnen/three.js.kt
 
-# Recent Changes
+# Create a folder to put the generated files in
+mkdir gen
+```
 
-### [0.0.28] - 13'February 2020
-  - [descriptors] support for `inline` and `crosslinine` modifiers in descriptors
-  - [typescript] Inlined invoke extension function can have return type
-  - [typescript] Merge vars and interfaces even if they are in different files (but in the same package)
-  - [typescript] Merge classlikes correctly (under some conditions they were copied after merge)
-  - [typescript] Preserve type params while resolving this return type in extension functions    
+Generate the external declarations:
+```shell script
+# In case you have previously generated files:
+rm -rf gen/*
 
-### [0.0.27] - 07'February 2020
- - [build] make it possible to build with arbitrary version of kotlin compiler
- - [build] typescript compiler version updated to 3.5.3
- - [descriptors] support for compiling with 1.3.70-eap-42
- - [typescript] Move top level declarations into a separate file whenever it's invalid to keep them with the rest of declarations (that is, when there's file-level JsQualifier or JsModule annotations)
- - [idl] Don't add import for the same package this file belongs to
-        
-[see full CHANGELOG](https://github.com/Kotlin/dukat/blob/master/CHANGELOG.md)
+# Genetate the Kotlin externals
+# -p adds a 'package three.js' declaration to each generated file
+# -q adds a 'file:JsQualifier("THREE")' declaration to each generated file
+# -d puts the generated files in the 'gen' folder
+dukat -p three.js -q THREE -d ./gen three.js.kt/src/Three.d.ts
+```
 
-# Useful links
+When copying the files to your target project, please only take *`.module_three.kt`* files: (We don't need the `.module_dukat.kt` files), like so:
+```shell script
+# Modify the target folder according to your needs:
+find ./gen -iname "*.module_three.kt" -exec cp {} ~/projects/kotlin-three-js-starter/threejs_kt/src/main/kotlin/three/ \;
+```
 
-- [TypeScript type definitions](https://github.com/DefinitelyTyped/DefinitelyTyped)
- 
+See my [kotlin-three-js-starter](https://github.com/liorgonnen/kotlin-three-js-starter) repo for a fully working example.
