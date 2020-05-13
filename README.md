@@ -13,14 +13,13 @@ If you want to run this locally, and also easily test your changes:
 
 cd node-package/build/distrib
 
-# Instead of install every time we build, we simply create a symlink to our local package
+# Instead of re-installing every time we build, we simply create a symlink to our local npm package
 npm link node-package/build/distrib
 
-# Create a symbolic link between the executed .jar in the local package, and the .jar
+# Create a symbolic link between the executed .jar in the local npm package, and the .jar
 # created when running gradle's command-line/build task
 ln -s command-line/build/libs/dukat-cli.jar /node-package/build/distrib/build/runtime/dukat-cli.jar
 ```
-
 
 # Usage
 ```shell
